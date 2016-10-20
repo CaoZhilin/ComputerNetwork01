@@ -12,7 +12,11 @@
 #include <memory.h>
 #include <stdio.h>
 
+#include "message.h"
+
 #define BACKLOG 10
+
+int send_client_message(int clientFD, char* message, int length);
 
 int main(int argc, char **argv) {
 	int listenfd, connfd;
@@ -49,7 +53,7 @@ int main(int argc, char **argv) {
 			printf("Error accept(): %s(%d)\n", strerror(errno), errno);
 			continue;
 		}
-		
+		send_client_message(connfd,SeverReady220,strlen(SeverReady220));
 		p = 0;
 		while (1) {
 			int n = read(connfd, sentence + p, 8191 - p);
@@ -89,5 +93,14 @@ int main(int argc, char **argv) {
 	}
 
 	close(listenfd);
+	return 0;
+}
+
+int send_client_message(int clientFD, char* message, int length){
+    if(write(clientFD, message, length) < 0){
+        perror("Could not sent message to client, there is something wrong!")
+        return 1;
+    }
+    return 0;
 }
 
