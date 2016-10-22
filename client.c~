@@ -232,7 +232,7 @@ void cmd_retr(){
     int writeFD;
     
     get_cmd_filename(cmd, filename);
-   // strcpy(local_file,"/tmp");   //
+    strcpy(local_file,"/tmp");   //
     char *p = strrchr(filename,'/');
     if(p == NULL)
     {
