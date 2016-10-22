@@ -232,7 +232,7 @@ void cmd_retr(){
     int writeFD;
     
     get_cmd_filename(cmd, filename);
-   // strcpy(local_file,"/tmp");   //
+    strcpy(local_file,"/tmpc");   //
     char *p = strrchr(filename,'/');
     if(p == NULL)
     {
@@ -267,7 +267,6 @@ void cmd_retr(){
         printf("socket error!\n");
         return;
     }
-    
     
     memset(data, 0, sizeof(data));
     
@@ -410,7 +409,27 @@ int connect_server_data(){
         struct sockaddr_in local;
         int addr_len =  sizeof(struct sockaddr);
         int data_transfer_sock = socket(AF_INET, SOCK_STREAM, 0);
-        
+        if (data_transfer_sock < 0)
+	    {
+		    perror("error create data socket!\n");
+		    exit(EXIT_FAILURE);
+	    }
+
+		srand((int)time(0));
+		int port = rand()  + 20000;
+
+		char pasv_msg[MAX_BUF];
+		char port_str[8];
+		char addr_info_str[30];
+
+
+		memset(&data_transfer_addr, 0, sizeof(struct sockaddr_in));
+		data_transfer_addr.sin_family = AF_INET;
+		data_transfer_addr.sin_addr.s_addr= INADDR_ANY;
+		data_transfer_addr.sin_port = htons(port);  
+		int port1 = ntohs(data_transfer_addr.sin_port) / 256;
+		int port2 = ntohs(data_transfer_addr.sin_port) % 256;  
+
         int on = 1;
         if(setsockopt(data_transfer_sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) < 0)
         {
@@ -418,9 +437,12 @@ int connect_server_data(){
             close(data_transfer_sock);
             return -1;
         }
-        if(bind(data_transfer_sock, (struct sockaddr*)&data_transfer_addr, sizeof(struct sockaddr_in)) < 0)  //if port is in use
+        while(bind(data_transfer_sock, (struct sockaddr*)&data_transfer_addr, sizeof(struct sockaddr_in)) < 0)  //if port is in use
         {
-            return -1;
+            port = rand()  + 20000;
+			data_transfer_addr.sin_port = htons(port);
+			port1 = ntohs(data_transfer_addr.sin_port) / 256;
+			port2 = ntohs(data_transfer_addr.sin_port) % 256;
         }
         
         if(listen(data_transfer_sock, 10) < 0)
@@ -432,7 +454,21 @@ int connect_server_data(){
         
         if(getsockname(client_sock,(struct sockaddr*)&local,(socklen_t *)&addr_len) < 0)
             return -1;
-        return data_transfer_sock;
+        long ip = inet_addr(inet_ntoa(local.sin_addr));  //get client's ip                                            
+		snprintf(addr_info_str, sizeof(addr_info_str), "PORT %ld,%ld,%ld,%ld,", ip&0xff,ip>>8&0xff,ip>>16&0xff,ip>>24&0xff);
+		snprintf(port_str, sizeof(port_str), "%d,%d\r\n", port1, port2);
+		strcat(addr_info_str, port_str);
+		strcpy(pasv_msg, addr_info_str);
+		send_server_msg(pasv_msg, strlen(pasv_msg));
+		if(receive_server_msg() != 200)
+		{
+			printf("Can not use PORT mode!Please use \"mode\" change to PASV mode.\n");
+			return -1;
+		}
+		else
+		{
+			return data_transfer_sock;
+		}
     }
     else{//PASV
         char msg_ip[50] = {0};
