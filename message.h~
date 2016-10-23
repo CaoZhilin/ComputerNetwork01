@@ -58,7 +58,7 @@ char msgOpenConnectionF425[]="425 Can't open data connection.\r\n";
 char serverMsg426[]="426 Connection closed, transfer aborted.\r\n";
 char msgReadFailed451[]="451 Requested action aborted, error in reading file from disk.\r\n";
 char msgWriteFailed451[]="451 Requested action aborted, error in writing file.\r\n";
-char msgPortSucc200[]="200 PORT command successful.\r\n";
-char msgTypeSucc200[]="200 Type set to I.\r\n";
+char msgPortSucc[]="200 PORT command successful.\r\n";
+char msgTypeSucc[]="200 Type set to I.\r\n";
 #endif
 

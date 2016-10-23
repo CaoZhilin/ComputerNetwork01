@@ -10,7 +10,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <termios.h>
 #include <memory.h>
 #include <netdb.h>
 #include <ctype.h>
@@ -25,7 +24,6 @@ int main(int argc, char *argv[]) {
 void usage_guide(char *ip, char *str_port){
     puts("userguide");
     char hostname[100] = {0};
-    //char str_port[100] = {0}
     puts("If you didn`t input the ip address and port number, please follow the following instructions.");
     puts("Please enter the IP address or host name of the site.");
     printf("IP address(or host name): ");
@@ -69,14 +67,14 @@ int connect_to_server(char *ip, int port)
     client_sock_addr.sin_port = htons(port);
     res = inet_pton(AF_INET, ip, &client_sock_addr.sin_addr);
     
-    if (0 == res)
+    if (res == 0)
     {
         perror("The ip address is not valid!");
         close(client_sock);
         exit(EXIT_FAILURE);
     }
     
-    if (-1 == connect(client_sock, (const struct sockaddr *)&client_sock_addr, sizeof(struct sockaddr_in)))
+    if (connect(client_sock, (const struct sockaddr *)&client_sock_addr, sizeof(struct sockaddr_in)) == -1)
     {
         perror("connect failed");
         close(client_sock);
@@ -87,12 +85,11 @@ int connect_to_server(char *ip, int port)
 
 void start_ftp_client()
 {
-    puts("sss");
     char ip[100] = {0};
     char str_port[100] = {0};
     usage_guide(ip, str_port);
-    if (connect_to_server(ip, atol(str_port)) == 0) {
-        if (receive_server_msg() != 0) {
+    if(connect_to_server(ip, atol(str_port)) == 0) {
+        if(receive_server_msg() != 0) {
             puts("Connected to the FTP server!");
             printf("%s",msg_buf);
         }
@@ -103,54 +100,56 @@ void start_ftp_client()
     }
     
     puts("Now you can execute the following commands:");
-    puts("login| port | pasv | retr | stor | syst | type | quit | abor | help");
+    puts("LOGIN| PORT | PASV | RETR | STOR | SYST | TYPE | QUIT | ABOR | HELP");
     show_instructions();
     int login_flag = 1;
     while (1) {
-        printf("ftp>");
+        printf("-->");
         memset(cmd, '\0', sizeof(cmd));
         fgets(cmd, MAX_BUF, stdin);
         fflush(stdin);
         if(cmd[0] == '\n')continue;
         cmd[strlen(cmd) - 1] = '\0';
         
-        if(strncmp(cmd, "login", 5) == 0)
+        if(strncmp(cmd, "LOGIN", 5) == 0)
         {
             login_flag = login();
         }
-        else if(strncmp(cmd, "port", 4) == 0 && login_flag == 0)
+        else if(strncmp(cmd, "PORT", 4) == 0 && login_flag == 0)
         {
             cmd_port();
         }
-        else if(strncmp(cmd, "pasv", 4) == 0 && login_flag == 0)
+        else if(strncmp(cmd, "PASV", 4) == 0 && login_flag == 0)
         {
             cmd_pasv();
         }
-        else if(strncmp(cmd, "retr ", 5) == 0 && login_flag == 0)
+        else if(strncmp(cmd, "RETR ", 5) == 0 && login_flag == 0)
         {
             cmd_retr();
         }
-        else if(strncmp(cmd, "stor ", 5) == 0 && login_flag == 0)
+        else if(strncmp(cmd, "STOR ", 5) == 0 && login_flag == 0)
         {
             cmd_stor();
         }
-        else if(strncmp(cmd, "syst", 4) == 0 && login_flag == 0)
+        else if(strncmp(cmd, "SYST", 4) == 0 && login_flag == 0)
         {
             cmd_syst();
         }
-        else if(strncmp(cmd, "type", 4) == 0 && login_flag == 0)
+        else if(strncmp(cmd, "TYPE", 4) == 0 && login_flag == 0)
         {
             cmd_type();
         }
-        else if(strncmp(cmd, "quit", 4) == 0 && login_flag == 0)
+        else if(strncmp(cmd, "QUIT", 4) == 0 && login_flag == 0)
         {
             cmd_quit();
+            return;
         }
-        else if(strncmp(cmd, "abor", 4) == 0 && login_flag == 0)
+        else if(strncmp(cmd, "ABOR", 4) == 0 && login_flag == 0)
         {
             cmd_abor();
+            return;
         }
-        else if(strncmp(cmd, "help", 4) == 0)
+        else if(strncmp(cmd, "HELP", 4) == 0)
         {
             cmd_help();
         }
@@ -169,12 +168,8 @@ void cmd_port(){
     int flag = 0;
     char buf[100] = {0};
     int h1,h2,h3,h4,p1,p2;
-    //int size = 0;
     int msg_port = 0;
-    //scanf("%d", &port);
-    //p1 = port / 256;
-    //p2 = port % 256;
-    
+  
     char *p = strchr(cmd, ' ');
     if (p == NULL) {
         flag = 1;
@@ -188,19 +183,18 @@ void cmd_port(){
         flag = 1;
     }
     if (flag == 0) {
-        sscanf(cmd, "port %d,%d,%d,%d,%d,%d", &h1, &h2, &h3, &h4, &p1,&p2);
+        sscanf(cmd, "PORT %d,%d,%d,%d,%d,%d", &h1, &h2, &h3, &h4, &p1,&p2);
         msg_port = p1 *256 + p2;
         sprintf(buf, "PORT %d,%d,%d,%d,%d,%d\r\n", h1, h2, h3, h4, p1, p2);
-        puts(buf);
         send_server_msg(buf, strlen(buf));
         if(receive_server_msg() != 200)
         {
-            printf("Can not use PORT mode!Please use \"mode\" change to PASV mode.\n");
+            printf("Can't connect with PORT mode.Try to change to PASV mode.\n");
             return;
         }
     }
     else{
-        puts("Error:Please inuput PORT with ip and port.");
+        puts("Error:Please input PORT with ip and port.");
         return;
     }
     struct sockaddr_in local;
@@ -232,7 +226,7 @@ void cmd_retr(){
     int writeFD;
     
     get_cmd_filename(cmd, filename);
-    strcpy(local_file,"/tmpc");   //
+    strcpy(local_file,"tmpc");   //
     char *p = strrchr(filename,'/');
     if(p == NULL)
     {
@@ -344,21 +338,24 @@ void cmd_stor(){
         return;
     }
     
+    
+    data_sock = connect_server_data();
+    
+    if(data_sock < 0)
+    {
+        printf("Create data sock error!\n");
+        return;
+    }
+    
+    send_server_msg("TYPE I\r\n",strlen("TYPE I\r\n"));
+    receive_server_msg();
+    printf("%s",msg_buf);
+
     memset(buf, 0, sizeof(buf));
     strcpy(buf, "STOR ");
     strcat(buf, filename);
     strcat(buf, "\r\n");
     send_server_msg(buf,strlen(buf));
-    receive_server_msg();
-    printf("%s",msg_buf);
-    data_sock = connect_server_data();
-    if(data_sock < 0)
-    {
-        printf("Creat data sock error!\n");
-        return;
-    }
-    
-    send_server_msg("TYPE I\r\n",strlen("TYPE I\r\n"));
     receive_server_msg();
     printf("%s",msg_buf);
     
@@ -369,6 +366,7 @@ void cmd_stor(){
             printf("Uploading \n");
             write(data_sock, data, sizeof(data));
         }
+        puts("Finished uploading");
         close(readFD);
         close(data_sock);
         receive_server_msg();
@@ -409,8 +407,7 @@ int connect_server_data(){
         struct sockaddr_in local;
         int addr_len =  sizeof(struct sockaddr);
         int data_transfer_sock = socket(AF_INET, SOCK_STREAM, 0);
-        if (data_transfer_sock < 0)
-	    {
+        if (data_transfer_sock < 0){
 		    perror("error create data socket!\n");
 		    exit(EXIT_FAILURE);
 	    }
@@ -421,7 +418,6 @@ int connect_server_data(){
 		char pasv_msg[MAX_BUF];
 		char port_str[8];
 		char addr_info_str[30];
-
 
 		memset(&data_transfer_addr, 0, sizeof(struct sockaddr_in));
 		data_transfer_addr.sin_family = AF_INET;
@@ -452,17 +448,18 @@ int connect_server_data(){
             return -1;
         }
         
-        if(getsockname(client_sock,(struct sockaddr*)&local,(socklen_t *)&addr_len) < 0)
+        if(getsockname(client_sock,(struct sockaddr*)&local,(socklen_t *)&addr_len) < 0){
             return -1;
-        long ip = inet_addr(inet_ntoa(local.sin_addr));  //get client's ip                                            
-		snprintf(addr_info_str, sizeof(addr_info_str), "PORT %ld,%ld,%ld,%ld,", ip&0xff,ip>>8&0xff,ip>>16&0xff,ip>>24&0xff);
+		}
+        long ip = inet_addr(inet_ntoa(local.sin_addr));                                          
+		snprintf(addr_info_str, sizeof(addr_info_str), "PORT %ld,%ld,%ld,%ld,", ip&0xff, ip>>8&0xff, ip>>16&0xff, ip>>24&0xff);
 		snprintf(port_str, sizeof(port_str), "%d,%d\r\n", port1, port2);
 		strcat(addr_info_str, port_str);
 		strcpy(pasv_msg, addr_info_str);
 		send_server_msg(pasv_msg, strlen(pasv_msg));
 		if(receive_server_msg() != 200)
 		{
-			printf("Can not use PORT mode!Please use \"mode\" change to PASV mode.\n");
+			printf("Can't connect in PORT mode!Try change to PASV mode.\n");
 			return -1;
 		}
 		else
@@ -475,6 +472,7 @@ int connect_server_data(){
         int msg_port = 0;
         char mode_msg[] = "PASV\r\n";
         send_server_msg(mode_msg,strlen(mode_msg));
+        puts("send pasv");
         if (receive_server_msg() != 227) {
             puts("Something wrong with PASV mode, please change into PORT mode.");
             return -1;
@@ -485,7 +483,7 @@ int connect_server_data(){
         data_transfer_addr.sin_family = AF_INET;
         data_transfer_addr.sin_port = htons(msg_port);
         if (inet_pton(AF_INET, msg_ip, &data_transfer_addr.sin_addr) == 0) {
-            perror("tht PASV address is not valid.");
+            perror("tht PASV mode address is not valid.");
             return -1;
         }
         int new_data_sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -544,22 +542,6 @@ void get_cmd_filename(const char *cmd, char *filename)
     }
 }
 
-
-static struct termios stored_settings;
-void echo_off(void)
-{
-    struct termios new_settings;
-    tcgetattr(0,&stored_settings);
-    new_settings = stored_settings;
-    new_settings.c_lflag &= (~ECHO);
-    tcsetattr(0,TCSANOW,&new_settings);
-    return;
-}
-void echo_on(void)
-{
-    tcsetattr(0,TCSANOW,&stored_settings);
-    return;
-}
 int login(){
     char user[MAX_BUF];
     char buf[MAX_BUF];
@@ -588,7 +570,7 @@ int login(){
         char pass[MAX_BUF];
         printf("Password(Press Enter for anonymous): ");
         memset(buf, 0, sizeof(buf));
-        echo_off();
+
         fgets(buf, sizeof(buf), stdin);
         if(buf[0]=='\n')
         {
@@ -598,7 +580,6 @@ int login(){
         {
             strncpy(pass, buf, strlen(buf)-1);
         }
-        echo_on();
         printf("\n");
         
         memset(buf, 0, sizeof(buf));
@@ -645,44 +626,16 @@ int receive_server_msg()
 }
 
 void show_instructions(){
-    
-    
-    printf("\033[32mhelp\033[0m\t--print this command list\n");
-    
-    printf("\033[32mlogin\033[0m\t--login\n");
-    //printf("\033[32mpass\033[0m\t--transfer your password to the server\n");
-    printf("\033[32mport\033[0m\t--change the current mode into PORT\n");
-    printf("\033[32mpasv\033[0m\t--change the current mode into PASV\n");
-    
-    printf("\033[32mretr\033[0m\t--download file from the server\n");
-    printf("\033[32mstor\033[0m\t--upload file to the server\n");
-    printf("\033[32msyst\033[0m\t--get the system info\n");
-    printf("\033[32mtype\033[0m\t--set transmission type binary or ASCII\n");
-    printf("\033[32mquit\033[0m\t--quit this ftp client program\n");
-    printf("\033[32mabor\033[0m\t--quit this ftp client program\n");
-    
-    //
-    printf("\033[32mclose\033[0m\t--close the connection with the server\n");
-    printf("\033[32mmkdir\033[0m\t--make new dir on the ftp server\n");
-    printf("\033[32mrmdir\033[0m\t--delete the dir on the ftp server\n");
-    printf("\033[32mdele\033[0m\t--delete the file on the ftp server\n");
-
-    printf("\033[32mpwd\033[0m\t--print the current directory of server\n");
-    printf("\033[32mls\033[0m\t--list the files and directoris in current directory of server\n");
-    printf("\033[32mcd [directory]\033[0m\n\t--enter  of server\n");
-    printf("\033[32mmode\033[0m\n\t--change current mode, PORT or PASV\n");
-    printf("\033[32mput [local_file] \033[0m\n\t--send [local_file] to server as \n");
-    printf("\tif  isn't given, it will be the same with [local_file] \n");
-    printf("\tif there is any \' \' in , write like this \'\\ \'\n");
-    printf("\033[32mget [remote file] \033[0m\n\t--get [remote file] to local host as\n");
-    printf("\tif  isn't given, it will be the same with [remote_file] \n");
-    printf("\tif there is any \' \' in , write like this \'\\ \'\n");
-    printf("\033[32mlpwd\033[0m\t--print the current directory of local host\n");
-    printf("\033[32mlls\033[0m\t--list the files and directoris in current directory of local host\n");
-    printf("\033[32mlcd [directory]\033[0m\n\t--enter  of localhost\n");
-    printf("\033[32mbye\033[0m\t--quit this ftp client program\n");
-    printf("\033[32mquit\033[0m\t--quit this ftp client program\n");
-
+    printf("\033[32mHELP\033[0m\t--print this command list\n");
+    printf("\033[32mLOGIN\033[0m\t--login\n");
+    printf("\033[32mPORT\033[0m\t--change the current mode into PORT\n");
+    printf("\033[32mPASV\033[0m\t--change the current mode into PASV\n");
+    printf("\033[32mRETR\033[0m\t--download file from the server\n");
+    printf("\033[32mSTOR\033[0m\t--upload file to the server\n");
+    printf("\033[32mSYST\033[0m\t--get the system info\n");
+    printf("\033[32mTYPE\033[0m\t--set transmission type binary or ASCII\n");
+    printf("\033[32mQUIT\033[0m\t--quit this ftp client program\n");
+    printf("\033[32mABOR\033[0m\t--quit this ftp client program\n");
 }
 void cmd_quit(){
     send_server_msg("QUIT\r\n",strlen("QUIT\r\n"));

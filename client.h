@@ -12,13 +12,6 @@ char msg_buf[MAX_BUF];
 char cmd[MAX_BUF];
 struct sockaddr_in data_transfer_addr;
 int mode = 0; //0 is pasv, 1 is port
-//struct PortInfo{
-  //  char job[20];
-   // int age;
-   // float height;
-//};
-//struct PortInfo port_info;
-
 
 void show_instructions();
 void get_cmd_filename(const char *cmd, char *filename);
@@ -40,7 +33,5 @@ void show_help();
 int send_server_msg(char* msg,int length);
 int receive_server_msg();
 void get_ip_from_msg(char *buffer,char *ip_address,int *port);
-
-
 
 #endif /* client_h */
