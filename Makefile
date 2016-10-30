@@ -9,4 +9,7 @@ cleanc:
 cleans:
 	rm server
 
-
+wclient:wclient.c wclient.h
+	gcc -Wall -o wclient wclient.c -lpthread
+cleanw:
+	rm wclient

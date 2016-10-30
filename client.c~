@@ -89,7 +89,9 @@ void start_ftp_client()
     char str_port[100] = {0};
     usage_guide(ip, str_port);
     if(connect_to_server(ip, atol(str_port)) == 0) {
-        if(receive_server_msg() != 0) {
+        int type = receive_server_msg();
+        print("%s",msg_buf);
+        if(type != 0) {
             puts("Connected to the FTP server!");
             printf("%s",msg_buf);
         }
@@ -142,10 +144,12 @@ void start_ftp_client()
         else if(strncmp(cmd, "QUIT", 4) == 0 && login_flag == 0)
         {
             cmd_quit();
+            return;
         }
         else if(strncmp(cmd, "ABOR", 4) == 0 && login_flag == 0)
         {
             cmd_abor();
+            return;
         }
         else if(strncmp(cmd, "HELP", 4) == 0)
         {
@@ -185,7 +189,9 @@ void cmd_port(){
         msg_port = p1 *256 + p2;
         sprintf(buf, "PORT %d,%d,%d,%d,%d,%d\r\n", h1, h2, h3, h4, p1, p2);
         send_server_msg(buf, strlen(buf));
-        if(receive_server_msg() != 200)
+        int type = receive_server_msg();
+        print("%s",msg_buf);
+        if(type != 200)
         {
             printf("Can't connect with PORT mode.Try to change to PASV mode.\n");
             return;
@@ -455,7 +461,9 @@ int connect_server_data(){
 		strcat(addr_info_str, port_str);
 		strcpy(pasv_msg, addr_info_str);
 		send_server_msg(pasv_msg, strlen(pasv_msg));
-		if(receive_server_msg() != 200)
+		int type = receive_server_msg();
+                printf("%s",msg_buf);
+		if(type != 200)
 		{
 			printf("Can't connect in PORT mode!Try change to PASV mode.\n");
 			return -1;
@@ -471,10 +479,12 @@ int connect_server_data(){
         char mode_msg[] = "PASV\r\n";
         send_server_msg(mode_msg,strlen(mode_msg));
         puts("send pasv");
-        if (receive_server_msg() != 227) {
-            puts("Something wrong with PASV mode, please change into PORT mode.");
-            return -1;
-        }
+        //if (receive_server_msg() != 227) {
+          //  puts("Something wrong with PASV mode, please change into PORT mode.");
+            //return -1;
+        //}
+        receive_server_msg();
+        printf("%s",msg_buf);
         get_ip_from_msg(msg_buf,msg_ip,&msg_port);
         
         memset(&data_transfer_addr, 0, sizeof(data_transfer_addr));

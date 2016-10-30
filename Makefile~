@@ -1,4 +1,4 @@
-server:server.c message.h
+server:server.c server.h
 	gcc -Wall -o server server.c -lpthread
 client:client.c client.h
 	gcc -Wall -o client client.c -lpthread
@@ -8,8 +8,6 @@ cleanc:
 	rm client
 cleans:
 	rm server
+
 wclient:wclient.c wclient.h
 	gcc -Wall -o wclient wclient.c -lpthread
-wserver:wserver.c wserver.h
-	gcc -Wall -o wserver wserver.c -lpthread
-
